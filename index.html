@@ -695,7 +695,7 @@
           scriptProcessor.connect(audioCtx.destination);
 
           isSetupComplete = false;
-          var url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(apiKey);
+          var url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(apiKey);
           addLog('Connecting to Gemini Multimodal Live WebSocket (v1alpha)...', 'info');
           ws = new WebSocket(url);
 
