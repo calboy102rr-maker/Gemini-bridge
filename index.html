@@ -695,15 +695,15 @@
           scriptProcessor.connect(audioCtx.destination);
 
           isSetupComplete = false;
-          var url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(apiKey);
-          addLog('Connecting to Gemini Multimodal Live WebSocket (v1alpha)...', 'info');
+          var url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(apiKey);
+          addLog('Connecting to Gemini Multimodal Live WebSocket (v1beta)...', 'info');
           ws = new WebSocket(url);
 
           ws.onopen = function () {
             addLog('Connected to Gemini Live! Sending voice & persona setup...', 'success');
             var setupPayload = {
               setup: {
-                model: 'models/gemini-2.0-flash-exp',
+                model: 'models/gemini-1.5-flash-exp',
                 generationConfig: {
                   responseModalities: ['AUDIO'],
                   speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
