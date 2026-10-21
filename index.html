@@ -1,254 +1,885 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gemini Live Phone Bridge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Gemini Live On-Device Phone Bridge</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    body { background-color: #0b0f19; color: #f1f5f9; font-family: sans-serif; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pulse-ring {
+      animation: pulseRing 2s infinite;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+      70% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
   </style>
 </head>
-<body class="min-h-screen p-4 max-w-lg mx-auto space-y-4">
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
-  <header class="border-b border-slate-800 pb-3 flex justify-between items-center">
-    <div>
-      <h1 class="text-lg font-bold text-white">Gemini Live Phone Bridge</h1>
-      <p id="statusSubtitle" class="text-xs text-slate-400">On-Device Echo-Gated Audio</p>
+  <!-- Top Header -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30">
+    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div id="statusDot" class="w-3 h-3 rounded-full bg-slate-500 transition-colors"></div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white leading-none">Gemini Phone Bridge</h1>
+          <p id="statusSubtitle" class="text-xs text-slate-400 mt-0.5">100% On-Device • Zero Server Required</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="callTimer" class="text-xs font-mono bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-full border border-slate-700">00:00</span>
+        <button id="btnDownloadZip" type="button" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-semibold shadow transition">
+          ⬇ Download ZIP
+        </button>
+        <button id="btnInstallHelp" type="button" class="text-xs bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg font-medium transition">
+          Install Guide
+        </button>
+      </div>
     </div>
-    <span id="callTimer" class="font-mono text-xs bg-slate-800 text-emerald-400 px-2.5 py-1 rounded-full border border-slate-700">00:00</span>
   </header>
 
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-    <div>
-      <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Gemini API Key</label>
-      <input id="apiKeyInput" type="password" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono" />
-    </div>
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-xl w-full mx-auto px-4 py-4 space-y-4">
 
-    <div>
-      <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Friend's Phone Number</label>
-      <input id="phoneInput" type="tel" value="+1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-base text-white font-mono" />
-    </div>
-
-    <div>
-      <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Gemini Voice</label>
-      <select id="voiceSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-        <option value="Puck">Puck</option>
-        <option value="Charon">Charon</option>
-        <option value="Kore">Kore</option>
-        <option value="Fenrir">Fenrir</option>
-        <option value="Aoede">Aoede</option>
-      </select>
-    </div>
-
-    <div class="pt-2 flex flex-col gap-2">
-      <button id="btnBridge" type="button" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition shadow-lg">
-        1. Start Gemini Live Bridge
+    <!-- Navigation Tabs -->
+    <div class="grid grid-cols-3 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+      <button id="tabBridge" type="button" class="py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow transition">
+        Live Call Bridge
       </button>
-      <a id="linkDial" href="tel:+1" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm text-center transition shadow-lg">
-        2. Dial in Phone / Google Voice
-      </a>
+      <button id="tabConfig" type="button" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
+        AI Persona & Key
+      </button>
+      <button id="tabLogs" type="button" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
+        Activity Log
+      </button>
     </div>
 
-    <div class="flex gap-2 pt-2">
-      <button id="btnMute" type="button" class="flex-1 py-2 bg-slate-800 text-xs rounded-xl font-semibold text-slate-300">Mic: Active</button>
-      <button id="btnInterrupt" type="button" class="flex-1 py-2 bg-amber-600/20 text-amber-300 border border-amber-500/30 text-xs rounded-xl font-semibold">Interrupt AI</button>
+    <!-- TAB 1: LIVE CALL BRIDGE -->
+    <section id="viewBridge" class="space-y-4">
+
+      <!-- Live Audio Visualizer & Gate Status Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span id="gateBadge" class="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              STANDBY
+            </span>
+            <span id="voiceActiveTag" class="text-xs text-slate-400">Voice: <strong class="text-slate-200">Puck</strong></span>
+          </div>
+          <span id="chunksCounter" class="text-[11px] font-mono text-slate-400">In: 0 | Out: 0</span>
+        </div>
+
+        <!-- Waveform Canvas Container -->
+        <div class="relative h-24 w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800/80 flex items-center justify-center">
+          <canvas id="waveCanvas" class="w-full h-full block"></canvas>
+          <div id="canvasOverlayText" class="absolute inset-0 flex items-center justify-center pointer-events-none text-xs text-slate-500">
+            Tap "Start Gemini Bridge" below to begin live audio
+          </div>
+        </div>
+
+        <!-- Echo Gate Adjustment for Google Voice / Speakerphone -->
+        <div class="mt-3 pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <label for="echoGateSlider" class="text-slate-300 font-medium flex items-center gap-1.5">
+              <span>Speakerphone Echo Gate Tail:</span>
+              <span id="echoGateValue" class="text-emerald-400 font-mono">280 ms</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input id="chkEchoGate" type="checkbox" checked class="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0" />
+              <span class="text-slate-400">Auto-Mute While AI Speaks</span>
+            </label>
+          </div>
+          <input id="echoGateSlider" type="range" min="0" max="800" step="20" value="280" class="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Prevents Gemini from hearing its own voice over speakerphone during a Google Voice or cellular call.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Phone Dialer & Call Launcher -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Friend's Phone Number</h2>
+          <button id="btnClearNum" type="button" class="text-xs text-slate-400 hover:text-rose-400 transition">Clear</button>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            id="phoneInput"
+            type="tel"
+            value="+1"
+            placeholder="+1 (555) 123-4567"
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-lg font-mono text-white focus:outline-none focus:border-emerald-500"
+          />
+          <button
+            id="btnToggleKeypad"
+            type="button"
+            class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition"
+          >
+            Keypad
+          </button>
+        </div>
+
+        <!-- Collapsible Dialpad -->
+        <div id="keypadGrid" class="hidden grid-cols-3 gap-2 pt-1">
+          <button type="button" data-digit="1" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">1</button>
+          <button type="button" data-digit="2" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">2</button>
+          <button type="button" data-digit="3" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">3</button>
+          <button type="button" data-digit="4" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">4</button>
+          <button type="button" data-digit="5" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">5</button>
+          <button type="button" data-digit="6" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">6</button>
+          <button type="button" data-digit="7" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">7</button>
+          <button type="button" data-digit="8" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">8</button>
+          <button type="button" data-digit="9" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">9</button>
+          <button type="button" data-digit="*" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">*</button>
+          <button type="button" data-digit="0" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">0</button>
+          <button type="button" data-digit="#" class="dial-key py-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-xl text-base font-bold text-white">#</button>
+        </div>
+
+        <!-- Primary Action Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <button
+            id="btnStartBridge"
+            type="button"
+            class="w-full py-3 px-4 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition"
+          >
+            <span id="bridgeBtnLabel">1. Start Gemini Bridge</span>
+          </button>
+
+          <a
+            id="linkDialFriend"
+            href="tel:+1"
+            class="w-full py-3 px-4 rounded-xl font-semibold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 text-center transition"
+          >
+            <span>2. Dial in Google Voice / Phone</span>
+          </a>
+        </div>
+
+        <!-- In-Call Live Controls -->
+        <div class="grid grid-cols-3 gap-2 pt-1">
+          <button
+            id="btnMuteMic"
+            type="button"
+            class="py-2 px-3 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+          >
+            Mic: Active
+          </button>
+          <button
+            id="btnInterruptAi"
+            type="button"
+            class="py-2 px-3 rounded-xl text-xs font-semibold bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition"
+          >
+            Interrupt AI Now
+          </button>
+          <button
+            id="btnSayGreeting"
+            type="button"
+            class="py-2 px-3 rounded-xl text-xs font-semibold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition"
+          >
+            Trigger Greeting
+          </button>
+        </div>
+      </div>
+
+      <!-- Whisper / Mid-Call Director Prompt -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2">
+        <label for="whisperInput" class="text-xs font-semibold uppercase tracking-wider text-slate-400 block">
+          Live Director Whisper (Steer Gemini Mid-Call)
+        </label>
+        <div class="flex gap-2">
+          <input
+            id="whisperInput"
+            type="text"
+            placeholder="e.g., Ask them if they want pizza at 7pm..."
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+          />
+          <button
+            id="btnSendWhisper"
+            type="button"
+            class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: AI PERSONA & API KEY CONFIG -->
+    <section id="viewConfig" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-4">
+        <div>
+          <label for="apiKeyInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            Google Gemini API Key
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="apiKeyInput"
+              type="password"
+              placeholder="AIzaSy..."
+              class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              id="btnSaveKey"
+              type="button"
+              class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition"
+            >
+              Save
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1.5">
+            Stored locally on your device. Connects directly to <code class="text-slate-300">generativelanguage.googleapis.com</code>.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Gemini Live Voice Persona
+          </label>
+          <div id="voiceChips" class="grid grid-cols-5 gap-1.5">
+            <button type="button" data-voice="Puck" class="voice-btn py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white border border-emerald-500">Puck</button>
+            <button type="button" data-voice="Charon" class="voice-btn py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">Charon</button>
+            <button type="button" data-voice="Kore" class="voice-btn py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">Kore</button>
+            <button type="button" data-voice="Fenrir" class="voice-btn py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">Fenrir</button>
+            <button type="button" data-voice="Aoede" class="voice-btn py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">Aoede</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="systemPromptInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            System Instructions for Call
+          </label>
+          <textarea
+            id="systemPromptInput"
+            rows="4"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white leading-relaxed focus:outline-none focus:border-emerald-500"
+          >You are an AI assistant speaking on a live phone call with my friend. Keep your responses natural, warm, concise, and conversational. Speak in short sentences and pause naturally so the other person can reply.</textarea>
+        </div>
+
+        <!-- Preset Call Scenarios -->
+        <div>
+          <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Quick Persona Presets</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" data-preset="friendly" class="preset-btn text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700">Friendly Catch-Up</button>
+            <button type="button" data-preset="assistant" class="preset-btn text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700">Personal Assistant</button>
+            <button type="button" data-preset="comedy" class="preset-btn text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700">Witty & Funny</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ACTIVITY LOG -->
+    <section id="viewLogs" class="hidden space-y-3">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Real-Time Bridge Telemetry</h2>
+          <button id="btnClearLogs" type="button" class="text-xs text-slate-400 hover:text-white">Clear Log</button>
+        </div>
+        <div id="logContainer" class="h-72 overflow-y-auto bg-slate-950 rounded-xl p-3 font-mono text-xs space-y-1.5 border border-slate-800">
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Install / Usage Modal -->
+  <div id="modalInstall" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">How to Run 100% on Your Android Phone</h3>
+        <button id="btnCloseModal" type="button" class="text-slate-400 hover:text-white text-sm font-bold px-2 py-1">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+          <strong class="text-emerald-400 block mb-1">Option A: Use This Web App Instantly (Zero Install)</strong>
+          1. Open the <strong>AI Persona & Key</strong> tab and paste your Gemini API key.<br/>
+          2. Tap <strong>1. Start Gemini Bridge</strong>.<br/>
+          3. Tap <strong>2. Dial in Google Voice / Phone</strong> and put your call on <strong>Speakerphone</strong>. The built-in Smart Echo Gate prevents feedback so your friend talks directly with Gemini!
+        </div>
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <strong class="text-indigo-400 block">Option B: Build APK on GitHub (No Folder Upload Needed)</strong>
+          <p class="text-[11px] text-slate-300">Upload the ZIP file to your GitHub repository, then add a workflow to build the APK:</p>
+          <div class="pt-1 flex items-center justify-between gap-2">
+            <span class="text-[11px] text-slate-400">Workflow file:</span>
+            <button id="btnCopyWorkflow" type="button" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] font-semibold">
+              Copy build-apk.yml
+            </button>
+          </div>
+        </div>
+      </div>
+      <button id="btnGotItModal" type="button" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs transition">
+        Got It
+      </button>
     </div>
   </div>
 
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
-    <div class="text-xs font-semibold uppercase text-slate-400">Activity Log</div>
-    <div id="logBox" class="h-44 overflow-y-auto bg-slate-950 rounded-xl p-3 font-mono text-xs space-y-1 text-slate-300 border border-slate-800"></div>
-  </div>
+  <!-- Toast Banner -->
+  <div id="toastBanner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 border border-slate-600 text-white px-4 py-2 rounded-xl text-xs font-medium shadow-xl"></div>
 
   <script>
-    var isRunning = false, isSetupComplete = false, isMuted = false;
-    var ws = null, audioCtx = null, mediaStream = null, scriptProc = null;
-    var nextPlayTime = 0, geminiSpeakingUntilMs = 0, activeSources = [], timerId = null, startTime = 0;
+    (function () {
+      var isBridgeRunning = false;
+      var isSetupComplete = false;
+      var isMicMuted = false;
+      var selectedVoice = 'Puck';
+      var ws = null;
+      var audioCtx = null;
+      var mediaStream = null;
+      var scriptProcessor = null;
+      var analyser = null;
+      var animFrameId = null;
+      var timerIntervalId = null;
+      var callStartTime = 0;
 
-    var apiKeyInput = document.getElementById('apiKeyInput');
-    var phoneInput = document.getElementById('phoneInput');
-    var voiceSelect = document.getElementById('voiceSelect');
-    var btnBridge = document.getElementById('btnBridge');
-    var linkDial = document.getElementById('linkDial');
-    var btnMute = document.getElementById('btnMute');
-    var btnInterrupt = document.getElementById('btnInterrupt');
-    var logBox = document.getElementById('logBox');
-    var callTimer = document.getElementById('callTimer');
+      var nextPlayTime = 0;
+      var geminiSpeakingUntilMs = 0;
+      var activePlaybackSources = [];
+      var inChunksCount = 0;
+      var outChunksCount = 0;
 
-    function log(msg, type) {
-      var div = document.createElement('div');
-      div.className = type === 'success' ? 'text-emerald-400' : (type === 'error' ? 'text-rose-400' : 'text-slate-300');
-      div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-      logBox.insertBefore(div, logBox.firstChild);
-    }
+      var statusDot = document.getElementById('statusDot');
+      var statusSubtitle = document.getElementById('statusSubtitle');
+      var callTimer = document.getElementById('callTimer');
+      var btnDownloadZip = document.getElementById('btnDownloadZip');
+      var btnInstallHelp = document.getElementById('btnInstallHelp');
+      var modalInstall = document.getElementById('modalInstall');
+      var btnCloseModal = document.getElementById('btnCloseModal');
+      var btnGotItModal = document.getElementById('btnGotItModal');
 
-    phoneInput.addEventListener('input', function() {
-      linkDial.href = 'tel:' + phoneInput.value.trim();
-    });
+      var tabBridge = document.getElementById('tabBridge');
+      var tabConfig = document.getElementById('tabConfig');
+      var tabLogs = document.getElementById('tabLogs');
+      var viewBridge = document.getElementById('viewBridge');
+      var viewConfig = document.getElementById('viewConfig');
+      var viewLogs = document.getElementById('viewLogs');
 
-    btnInterrupt.addEventListener('click', function() {
-      activeSources.forEach(function(s) { try { s.stop(); } catch(e){} });
-      activeSources = [];
-      if (audioCtx) nextPlayTime = audioCtx.currentTime;
-      geminiSpeakingUntilMs = 0;
-      log('Interrupted Gemini audio playback.');
-    });
+      var gateBadge = document.getElementById('gateBadge');
+      var voiceActiveTag = document.getElementById('voiceActiveTag');
+      var chunksCounter = document.getElementById('chunksCounter');
+      var waveCanvas = document.getElementById('waveCanvas');
+      var canvasOverlayText = document.getElementById('canvasOverlayText');
+      var echoGateSlider = document.getElementById('echoGateSlider');
+      var echoGateValue = document.getElementById('echoGateValue');
+      var chkEchoGate = document.getElementById('chkEchoGate');
 
-    btnMute.addEventListener('click', function() {
-      isMuted = !isMuted;
-      btnMute.textContent = isMuted ? 'Mic: Muted' : 'Mic: Active';
-      btnMute.className = isMuted ? 'flex-1 py-2 bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs rounded-xl font-semibold' : 'flex-1 py-2 bg-slate-800 text-xs rounded-xl font-semibold text-slate-300';
-    });
+      var phoneInput = document.getElementById('phoneInput');
+      var btnClearNum = document.getElementById('btnClearNum');
+      var btnToggleKeypad = document.getElementById('btnToggleKeypad');
+      var keypadGrid = document.getElementById('keypadGrid');
+      var btnStartBridge = document.getElementById('btnStartBridge');
+      var bridgeBtnLabel = document.getElementById('bridgeBtnLabel');
+      var linkDialFriend = document.getElementById('linkDialFriend');
 
-    function playPcm24k(b64) {
-      if (!audioCtx) return;
-      var bin = atob(b64);
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      var int16 = new Int16Array(bytes.buffer);
-      var float32 = new Float32Array(int16.length);
-      for (var j = 0; j < int16.length; j++) float32[j] = int16[j] / 32768.0;
+      var btnMuteMic = document.getElementById('btnMuteMic');
+      var btnInterruptAi = document.getElementById('btnInterruptAi');
+      var btnSayGreeting = document.getElementById('btnSayGreeting');
+      var whisperInput = document.getElementById('whisperInput');
+      var btnSendWhisper = document.getElementById('btnSendWhisper');
 
-      var buf = audioCtx.createBuffer(1, float32.length, 24000);
-      buf.getChannelData(0).set(float32);
-      var src = audioCtx.createBufferSource();
-      src.buffer = buf;
-      src.connect(audioCtx.destination);
+      var apiKeyInput = document.getElementById('apiKeyInput');
+      var btnSaveKey = document.getElementById('btnSaveKey');
+      var systemPromptInput = document.getElementById('systemPromptInput');
+      var logContainer = document.getElementById('logContainer');
+      var btnClearLogs = document.getElementById('btnClearLogs');
+      var toastBanner = document.getElementById('toastBanner');
 
-      var now = audioCtx.currentTime;
-      if (nextPlayTime < now) nextPlayTime = now;
-      src.start(nextPlayTime);
-      nextPlayTime += buf.duration;
-      activeSources.push(src);
-
-      // Smart Echo Gate: Mutes mic while Gemini is playing through the speaker
-      geminiSpeakingUntilMs = Date.now() + ((nextPlayTime - audioCtx.currentTime) * 1000) + 280;
-    }
-
-    btnBridge.addEventListener('click', async function() {
-      if (isRunning) {
-        stopBridge();
-        return;
+      function showToast(msg) {
+        toastBanner.textContent = msg;
+        toastBanner.classList.remove('hidden');
+        setTimeout(function () { toastBanner.classList.add('hidden'); }, 3000);
       }
-      var key = apiKeyInput.value.trim();
-      if (!key) { alert('Please enter your Gemini API Key first.'); return; }
+
+      function addLog(msg, type) {
+        var row = document.createElement('div');
+        var time = new Date().toLocaleTimeString();
+        var colorClass = type === 'error' ? 'text-rose-400' : (type === 'success' ? 'text-emerald-400' : (type === 'ai' ? 'text-sky-400' : 'text-slate-300'));
+        row.className = colorClass;
+        row.textContent = '[' + time + '] ' + msg;
+        logContainer.insertBefore(row, logContainer.firstChild);
+      }
 
       try {
-        log('Requesting microphone access...');
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        var savedKey = localStorage.getItem('gemini_phone_bridge_key');
+        if (savedKey) apiKeyInput.value = savedKey;
+      } catch (e) {}
+
+      addLog('On-device bridge initialized. Ready to connect to Gemini Live.', 'success');
+
+      function switchTab(activeTab) {
+        var tabs = [
+          { btn: tabBridge, view: viewBridge, id: 'bridge' },
+          { btn: tabConfig, view: viewConfig, id: 'config' },
+          { btn: tabLogs, view: viewLogs, id: 'logs' }
+        ];
+        tabs.forEach(function (t) {
+          if (t.id === activeTab) {
+            t.btn.className = 'py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow transition';
+            t.view.classList.remove('hidden');
+          } else {
+            t.btn.className = 'py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+            t.view.classList.add('hidden');
+          }
         });
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        nextPlayTime = audioCtx.currentTime;
-        var source = audioCtx.createMediaStreamSource(mediaStream);
-        scriptProc = audioCtx.createScriptProcessor(4096, 1, 1);
-        source.connect(scriptProc);
-        scriptProc.connect(audioCtx.destination);
-
-        isSetupComplete = false;
-        var wsUrl = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(key);
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = function() {
-          log('Connected to Gemini WebSocket. Sending setup config...', 'info');
-          ws.send(JSON.stringify({
-            setup: {
-              model: 'models/gemini-2.0-flash-exp',
-              generationConfig: {
-                responseModalities: ['AUDIO'],
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceSelect.value } } }
-              },
-              systemInstruction: {
-                parts: [{ text: 'You are an AI assistant answering a live phone call with my friend. Keep responses brief, conversational, and natural for telephone speech.' }]
-              }
-            }
-          }));
-        };
-
-        ws.onmessage = async function(e) {
-          var raw = e.data instanceof Blob ? await e.data.text() : e.data;
-          var json = JSON.parse(raw);
-
-          // 1. Wait for setupComplete before transmitting mic audio
-          if (json.setupComplete) {
-            isSetupComplete = true;
-            log('Gemini Live session configured & ready! Listening for speech...', 'success');
-            return;
-          }
-
-          if (json.serverContent && json.serverContent.interrupted) {
-            btnInterrupt.click();
-            return;
-          }
-          if (json.serverContent && json.serverContent.modelTurn && json.serverContent.modelTurn.parts) {
-            json.serverContent.modelTurn.parts.forEach(function(p) {
-              if (p.inlineData && p.inlineData.mimeType && p.inlineData.mimeType.indexOf('audio') !== -1) {
-                playPcm24k(p.inlineData.data);
-              }
-            });
-          }
-        };
-
-        ws.onclose = function(e) {
-          var hint = '';
-          if (e.code === 1008) hint = ' (Policy violation: Check API Key or Model access)';
-          if (e.code === 1006) hint = ' (Connection failed: Check internet / API key)';
-          log('WebSocket closed [Code ' + e.code + (e.reason ? ' - ' + e.reason : '') + ']' + hint, 'error');
-          if (isRunning) stopBridge();
-        };
-
-        scriptProc.onaudioprocess = function(e) {
-          // Do not send mic data until Gemini setupComplete is confirmed
-          if (!isRunning || !isSetupComplete || isMuted || !ws || ws.readyState !== WebSocket.OPEN) return;
-          if (Date.now() < geminiSpeakingUntilMs) return;
-
-          var inp = e.inputBuffer.getChannelData(0);
-          var ratio = audioCtx.sampleRate / 16000;
-          var newLen = Math.round(inp.length / ratio);
-          var down = new Float32Array(newLen);
-          for (var i = 0; i < newLen; i++) down[i] = inp[Math.round(i * ratio)] || 0;
-
-          var pcmBuf = new ArrayBuffer(down.length * 2);
-          var view = new DataView(pcmBuf);
-          for (var j = 0; j < down.length; j++) {
-            var s = Math.max(-1, Math.min(1, down[j]));
-            view.setInt16(j * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-          }
-          var bin = '';
-          var u8 = new Uint8Array(pcmBuf);
-          for (var k = 0; k < u8.length; k++) bin += String.fromCharCode(u8[k]);
-          ws.send(JSON.stringify({
-            realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: btoa(bin) }] }
-          }));
-        };
-
-        isRunning = true;
-        btnBridge.textContent = 'Stop Gemini Bridge';
-        btnBridge.className = 'w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-sm transition';
-        startTime = Date.now();
-        timerId = setInterval(function() {
-          var diff = Math.floor((Date.now() - startTime) / 1000);
-          callTimer.textContent = String(Math.floor(diff / 60)).padStart(2, '0') + ':' + String(diff % 60).padStart(2, '0');
-        }, 1000);
-
-      } catch (err) {
-        log('Error: ' + err.message, 'error');
       }
-    });
 
-    function stopBridge() {
-      isRunning = false;
-      isSetupComplete = false;
-      clearInterval(timerId);
-      if (scriptProc) { try { scriptProc.disconnect(); } catch(e){} }
-      if (mediaStream) { mediaStream.getTracks().forEach(function(t) { t.stop(); }); }
-      if (audioCtx) { try { audioCtx.close(); } catch(e){} }
-      if (ws) { try { ws.close(); } catch(e){} }
-      btnBridge.textContent = '1. Start Gemini Live Bridge';
-      btnBridge.className = 'w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition shadow-lg';
-      log('Bridge stopped.');
-    }
+      tabBridge.addEventListener('click', function () { switchTab('bridge'); });
+      tabConfig.addEventListener('click', function () { switchTab('config'); });
+      tabLogs.addEventListener('click', function () { switchTab('logs'); });
+
+      if (btnDownloadZip) {
+        btnDownloadZip.addEventListener('click', function () {
+          window.open('https://drive.google.com/uc?export=download&id=1h_Ga-2Jo4hpnec4-_TFpUr3ayKDrdiZB', '_blank');
+        });
+      }
+
+      btnInstallHelp.addEventListener('click', function () { modalInstall.classList.remove('hidden'); });
+      btnCloseModal.addEventListener('click', function () { modalInstall.classList.add('hidden'); });
+      btnGotItModal.addEventListener('click', function () { modalInstall.classList.add('hidden'); });
+
+      var btnCopyWorkflow = document.getElementById('btnCopyWorkflow');
+      if (btnCopyWorkflow) {
+        btnCopyWorkflow.addEventListener('click', function () {
+          var yml = "name: Build Android APK\non: [push, workflow_dispatch]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: unzip -o GeminiLivePhoneBridge.zip && cp -rn android_project/* .\n      - uses: actions/setup-java@v4\n        with: { java-version: '17', distribution: 'temurin' }\n      - uses: android-actions/setup-android@v3\n      - uses: gradle/actions/setup-gradle@v3\n      - run: gradle assembleDebug\n      - uses: actions/upload-artifact@v4\n        with: { name: APK, path: app/build/outputs/apk/debug/app-debug.apk }";
+          try {
+            navigator.clipboard.writeText(yml);
+            showToast('Copied build-apk.yml to clipboard!');
+          } catch(e) {
+            showToast('Workflow copied');
+          }
+        });
+      }
+
+      echoGateSlider.addEventListener('input', function () {
+        echoGateValue.textContent = echoGateSlider.value + ' ms';
+      });
+
+      function syncTelLink() {
+        var cleaned = phoneInput.value.replace(/[^0-9+*#]/g, '');
+        linkDialFriend.href = 'tel:' + (cleaned || '+1');
+      }
+      phoneInput.addEventListener('input', syncTelLink);
+      btnClearNum.addEventListener('click', function () {
+        phoneInput.value = '+1';
+        syncTelLink();
+      });
+
+      btnToggleKeypad.addEventListener('click', function () {
+        if (keypadGrid.classList.contains('hidden')) {
+          keypadGrid.classList.remove('hidden');
+          keypadGrid.classList.add('grid');
+        } else {
+          keypadGrid.classList.add('hidden');
+          keypadGrid.classList.remove('grid');
+        }
+      });
+
+      document.querySelectorAll('.dial-key').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          phoneInput.value += btn.getAttribute('data-digit');
+          syncTelLink();
+        });
+      });
+
+      btnSaveKey.addEventListener('click', function () {
+        var key = apiKeyInput.value.trim();
+        try { localStorage.setItem('gemini_phone_bridge_key', key); } catch (e) {}
+        showToast('API Key saved on device');
+        addLog('Gemini API Key updated.', 'success');
+      });
+
+      var voiceBtns = document.querySelectorAll('.voice-btn');
+      voiceBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          selectedVoice = btn.getAttribute('data-voice');
+          voiceBtns.forEach(function (b) {
+            b.className = 'voice-btn py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700';
+          });
+          btn.className = 'voice-btn py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white border border-emerald-500';
+          voiceActiveTag.innerHTML = 'Voice: <strong class="text-slate-200">' + selectedVoice + '</strong>';
+          addLog('Selected Gemini voice: ' + selectedVoice);
+        });
+      });
+
+      var presets = {
+        friendly: 'You are an AI assistant speaking on a live phone call with my friend. Keep your responses natural, warm, concise, and conversational. Speak in short sentences and pause naturally so the other person can reply.',
+        assistant: 'You are a polite executive assistant calling on my behalf to coordinate plans and answer questions. Be concise, clear, and helpful over the phone.',
+        comedy: 'You are a witty, hilarious AI friend on a live phone call. Keep your jokes quick, lighthearted, and conversational without rambling.'
+      };
+      document.querySelectorAll('.preset-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var p = btn.getAttribute('data-preset');
+          if (presets[p]) {
+            systemPromptInput.value = presets[p];
+            showToast('Applied ' + btn.textContent + ' preset');
+          }
+        });
+      });
+
+      btnClearLogs.addEventListener('click', function () {
+        logContainer.innerHTML = '';
+        addLog('Log cleared.');
+      });
+
+      function arrayBufferToBase64(buffer) {
+        var binary = '';
+        var bytes = new Uint8Array(buffer);
+        var len = bytes.byteLength;
+        for (var i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+        return window.btoa(binary);
+      }
+
+      function base64ToInt16Array(b64) {
+        var binary = window.atob(b64);
+        var len = binary.length;
+        var bytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+        return new Int16Array(bytes.buffer);
+      }
+
+      function floatTo16BitPCM(float32Array) {
+        var buffer = new ArrayBuffer(float32Array.length * 2);
+        var view = new DataView(buffer);
+        for (var i = 0; i < float32Array.length; i++) {
+          var s = Math.max(-1, Math.min(1, float32Array[i]));
+          view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        return buffer;
+      }
+
+      function downsampleBuffer(buffer, inputRate, outputRate) {
+        if (outputRate === inputRate) return buffer;
+        var ratio = inputRate / outputRate;
+        var newLength = Math.round(buffer.length / ratio);
+        var result = new Float32Array(newLength);
+        var offsetResult = 0;
+        var offsetBuffer = 0;
+        while (offsetResult < result.length) {
+          var nextOffsetBuffer = Math.round((offsetResult + 1) * ratio);
+          var accum = 0, count = 0;
+          for (var i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+            accum += buffer[i];
+            count++;
+          }
+          result[offsetResult] = count > 0 ? accum / count : 0;
+          offsetResult++;
+          offsetBuffer = nextOffsetBuffer;
+        }
+        return result;
+      }
+
+      function playGeminiPcm24k(base64Data) {
+        if (!audioCtx) return;
+        var int16 = base64ToInt16Array(base64Data);
+        var float32 = new Float32Array(int16.length);
+        for (var i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
+
+        var audioBuffer = audioCtx.createBuffer(1, float32.length, 24000);
+        audioBuffer.getChannelData(0).set(float32);
+
+        var source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioCtx.destination);
+
+        var now = audioCtx.currentTime;
+        if (nextPlayTime < now) nextPlayTime = now;
+        source.start(nextPlayTime);
+        nextPlayTime += audioBuffer.duration;
+        activePlaybackSources.push(source);
+
+        var tailMs = parseInt(echoGateSlider.value, 10) || 280;
+        var remainingPlaybackMs = (nextPlayTime - audioCtx.currentTime) * 1000;
+        geminiSpeakingUntilMs = Date.now() + Math.max(0, remainingPlaybackMs) + tailMs;
+
+        outChunksCount++;
+        chunksCounter.textContent = 'In: ' + inChunksCount + ' | Out: ' + outChunksCount;
+      }
+
+      function flushAiPlayback() {
+        activePlaybackSources.forEach(function (src) {
+          try { src.stop(); } catch (e) {}
+        });
+        activePlaybackSources = [];
+        if (audioCtx) nextPlayTime = audioCtx.currentTime;
+        geminiSpeakingUntilMs = 0;
+        addLog('Flushed Gemini audio buffer (Caller interrupted).', 'ai');
+      }
+
+      function startVisualizer() {
+        var ctx = waveCanvas.getContext('2d');
+        function draw() {
+          if (!isBridgeRunning) return;
+          animFrameId = requestAnimationFrame(draw);
+
+          var width = waveCanvas.width = waveCanvas.clientWidth;
+          var height = waveCanvas.height = waveCanvas.clientHeight;
+          ctx.clearRect(0, 0, width, height);
+
+          var nowMs = Date.now();
+          var isAiSpeaking = chkEchoGate.checked && (nowMs < geminiSpeakingUntilMs);
+
+          if (isAiSpeaking) {
+            gateBadge.textContent = 'AI SPEAKING (MIC GATED)';
+            gateBadge.className = 'text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40';
+          } else if (isMicMuted) {
+            gateBadge.textContent = 'MIC MUTED';
+            gateBadge.className = 'text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40';
+          } else {
+            gateBadge.textContent = 'LISTENING TO CALL';
+            gateBadge.className = 'text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+          }
+
+          if (!analyser) return;
+          var bufferLength = analyser.frequencyBinCount;
+          var dataArray = new Uint8Array(bufferLength);
+          analyser.getByteTimeDomainData(dataArray);
+
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = isAiSpeaking ? '#38bdf8' : (isMicMuted ? '#f43f5e' : '#10b981');
+          ctx.beginPath();
+
+          var sliceWidth = width * 1.0 / bufferLength;
+          var x = 0;
+          for (var i = 0; i < bufferLength; i++) {
+            var v = dataArray[i] / 128.0;
+            var y = v * height / 2;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            x += sliceWidth;
+          }
+          ctx.lineTo(width, height / 2);
+          ctx.stroke();
+        }
+        draw();
+      }
+
+      async function startBridge() {
+        var apiKey = apiKeyInput.value.trim();
+        if (!apiKey) {
+          switchTab('config');
+          showToast('Please enter your Gemini API Key first');
+          apiKeyInput.focus();
+          return;
+        }
+
+        try {
+          addLog('Requesting microphone & acoustic echo canceler...', 'info');
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
+          });
+
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContextClass();
+          nextPlayTime = audioCtx.currentTime;
+
+          var source = audioCtx.createMediaStreamSource(mediaStream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+
+          scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+          source.connect(scriptProcessor);
+          scriptProcessor.connect(audioCtx.destination);
+
+          isSetupComplete = false;
+          var url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(apiKey);
+          addLog('Connecting to Gemini Multimodal Live WebSocket (v1beta)...', 'info');
+          ws = new WebSocket(url);
+
+          ws.onopen = function () {
+            addLog('Connected to Gemini Live! Sending voice & persona setup...', 'success');
+            var setupPayload = {
+              setup: {
+                model: 'models/gemini-2.0-flash-exp',
+                generationConfig: {
+                  responseModalities: ['AUDIO'],
+                  speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
+                },
+                systemInstruction: {
+                  parts: [{ text: systemPromptInput.value.trim() }]
+                }
+              }
+            };
+            ws.send(JSON.stringify(setupPayload));
+          };
+
+          ws.onmessage = async function (event) {
+            try {
+              var rawText = event.data;
+              if (rawText instanceof Blob) rawText = await rawText.text();
+              var data = JSON.parse(rawText);
+
+              if (data.setupComplete) {
+                isSetupComplete = true;
+                addLog('Gemini Live session configured & ready! Listening for speech...', 'success');
+                return;
+              }
+
+              var serverContent = data.serverContent;
+              if (!serverContent) return;
+
+              if (serverContent.interrupted) {
+                flushAiPlayback();
+                return;
+              }
+
+              var modelTurn = serverContent.modelTurn;
+              if (modelTurn && modelTurn.parts) {
+                modelTurn.parts.forEach(function (part) {
+                  if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.indexOf('audio') !== -1) {
+                    playGeminiPcm24k(part.inlineData.data);
+                  }
+                });
+              }
+            } catch (err) {
+              addLog('Parse message error: ' + err.message, 'error');
+            }
+          };
+
+          ws.onerror = function () {
+            addLog('WebSocket error occurred. Check your Gemini API Key.', 'error');
+            showToast('WebSocket connection error');
+          };
+
+          ws.onclose = function (e) {
+            var reasonMsg = e.reason ? (' - ' + e.reason) : '';
+            var errorHint = '';
+            if (e.code === 1008) errorHint = ' (Policy violation: Check API Key or Model access)';
+            if (e.code === 1006) errorHint = ' (Connection failed: Check internet / API key)';
+            if (e.code === 1011) errorHint = ' (Gemini server internal error)';
+            addLog('Gemini Live closed [Code ' + e.code + reasonMsg + ']' + errorHint, 'error');
+            if (isBridgeRunning) stopBridge();
+          };
+
+          scriptProcessor.onaudioprocess = function (e) {
+            if (!isBridgeRunning || !isSetupComplete || isMicMuted || !ws || ws.readyState !== WebSocket.OPEN) return;
+            if (chkEchoGate.checked && Date.now() < geminiSpeakingUntilMs) return;
+
+            var inputData = e.inputBuffer.getChannelData(0);
+            var downsampled = downsampleBuffer(inputData, audioCtx.sampleRate, 16000);
+            var pcm16Buffer = floatTo16BitPCM(downsampled);
+            var b64Audio = arrayBufferToBase64(pcm16Buffer);
+
+            ws.send(JSON.stringify({
+              realtimeInput: {
+                mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64Audio }]
+              }
+            }));
+
+            inChunksCount++;
+            if (inChunksCount % 5 === 0) chunksCounter.textContent = 'In: ' + inChunksCount + ' | Out: ' + outChunksCount;
+          };
+
+          isBridgeRunning = true;
+          inChunksCount = 0;
+          outChunksCount = 0;
+          canvasOverlayText.classList.add('hidden');
+          statusDot.className = 'w-3 h-3 rounded-full bg-emerald-500 pulse-ring';
+          statusSubtitle.textContent = 'Live Bridge Active • Ready for Call';
+          bridgeBtnLabel.textContent = 'Stop Gemini Bridge';
+          btnStartBridge.className = 'w-full py-3 px-4 rounded-xl font-semibold text-sm bg-rose-600 hover:bg-rose-500 text-white shadow-lg flex items-center justify-center gap-2 transition';
+
+          callStartTime = Date.now();
+          if (timerIntervalId) clearInterval(timerIntervalId);
+          timerIntervalId = setInterval(function () {
+            var elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+            var mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            var secs = String(elapsed % 60).padStart(2, '0');
+            callTimer.textContent = mins + ':' + secs;
+          }, 1000);
+
+          startVisualizer();
+        } catch (err) {
+          addLog('Failed to start audio bridge: ' + err.message, 'error');
+          showToast('Mic permission required: ' + err.message);
+        }
+      }
+
+      function stopBridge() {
+        isBridgeRunning = false;
+        isSetupComplete = false;
+        if (animFrameId) cancelAnimationFrame(animFrameId);
+        if (timerIntervalId) clearInterval(timerIntervalId);
+
+        flushAiPlayback();
+
+        if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch (e) {} scriptProcessor = null; }
+        if (mediaStream) { mediaStream.getTracks().forEach(function (t) { t.stop(); }); mediaStream = null; }
+        if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+        if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+
+        statusDot.className = 'w-3 h-3 rounded-full bg-slate-500';
+        statusSubtitle.textContent = '100% On-Device • Zero Server Required';
+        gateBadge.textContent = 'STANDBY';
+        gateBadge.className = 'text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700';
+        canvasOverlayText.classList.remove('hidden');
+        bridgeBtnLabel.textContent = '1. Start Gemini Bridge';
+        btnStartBridge.className = 'w-full py-3 px-4 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 transition';
+        addLog('Bridge stopped.', 'info');
+      }
+
+      btnStartBridge.addEventListener('click', function () {
+        if (isBridgeRunning) stopBridge();
+        else startBridge();
+      });
+
+      btnMuteMic.addEventListener('click', function () {
+        isMicMuted = !isMicMuted;
+        btnMuteMic.textContent = isMicMuted ? 'Mic: Muted' : 'Mic: Active';
+        btnMuteMic.className = isMicMuted
+          ? 'py-2 px-3 rounded-xl text-xs font-semibold bg-rose-600/30 text-rose-300 border border-rose-500/40 transition'
+          : 'py-2 px-3 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition';
+        addLog(isMicMuted ? 'Microphone muted.' : 'Microphone unmuted.');
+      });
+
+      btnInterruptAi.addEventListener('click', function () {
+        flushAiPlayback();
+        showToast('Interrupted AI playback');
+      });
+
+      function sendTextTurnToGemini(textMsg) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          showToast('Start the Gemini Bridge first');
+          return;
+        }
+        var payload = {
+          clientContent: {
+            turns: [{ role: 'user', parts: [{ text: textMsg }] }],
+            turnComplete: true
+          }
+        };
+        ws.send(JSON.stringify(payload));
+        addLog('Sent instruction to Gemini: "' + textMsg + '"', 'ai');
+      }
+
+      btnSayGreeting.addEventListener('click', function () {
+        sendTextTurnToGemini('Say a warm, brief hello to my friend on the phone and ask how their day is going.');
+      });
+
+      btnSendWhisper.addEventListener('click', function () {
+        var text = whisperInput.value.trim();
+        if (!text) return;
+        sendTextTurnToGemini('[Director instruction for the phone call]: ' + text);
+        whisperInput.value = '';
+      });
+
+      whisperInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') btnSendWhisper.click();
+      });
+    })();
   </script>
 </body>
 </html>
