@@ -696,7 +696,7 @@
 
           isSetupComplete = false;
           var url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=' + encodeURIComponent(apiKey);
-          addLog('Connecting to Gemini Multimodal Live WebSocket (v1beta)...', 'info');
+          addLog('Connecting to Gemini Multimodal Live WebSocket (v1alpha)...', 'info');
           ws = new WebSocket(url);
 
           ws.onopen = function () {
