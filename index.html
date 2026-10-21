@@ -703,7 +703,7 @@
             addLog('Connected to Gemini Live! Sending voice & persona setup...', 'success');
             var setupPayload = {
               setup: {
-                model: 'models/gemini-1.5-flash-exp',
+                model: 'models/gemini-3.8-live',
                 generationConfig: {
                   responseModalities: ['AUDIO'],
                   speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } } }
